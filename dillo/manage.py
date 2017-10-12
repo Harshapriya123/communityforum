@@ -1,3 +1,4 @@
+import json
 import logging
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate
@@ -99,5 +100,119 @@ def ensure_user_karma():
         if not user.karma:
             log.info('Assigning karma to user {}'.format(user.id))
             user_assign_karma(user)
+
+
+@manager.command
+def transcend():
+    from sqlalchemy import or_
+    from application.modules.users.model import User, UserOauth
+    from application.modules.posts.model import Post, UserPostRating, Comment, UserCommentRating
+
+    def write_doc(doc_name, doc_list):
+        doc_name = doc_name + '.json'
+        with open(doc_name, 'w') as outfile:
+            json.dump(doc_list, outfile, indent=4)
+
+    def dump_users():
+        # Get users
+        users_collection = []
+        for user in User.query.filter_by(active=1).all():
+            # Attach karma
+            user_doc = {
+                'id': user.id,
+                'full_name': u'{0} {1}'.format(user.first_name, user.last_name),
+                'username': user.username,
+                'email': user.email,
+                'settings': None,
+                'extension_props_public': {'dilo': {'karma': user.karma.value}},
+                'auth': [],
+            }
+            # Attach auth credentials
+            oauth = UserOauth.query.filter_by(user_id=user.id).all()
+            for o in oauth:
+                auth_doc = {
+                    'provider': o.service,
+                    'user_id': o.service_user_id,
+                    'token': None,
+                }
+                user_doc['auth'].append(auth_doc)
+            if user.password.startswith('$'):
+                auth_doc = {
+                    'provider': 'local',
+                    'user_id': None,
+                    'token': user.password,
+                }
+                user_doc['auth'].append(auth_doc)
+
+            users_collection.append(user_doc)
+            print(user_doc['username'])
+            write_doc('users', users_collection)
+
+    # Make user mongo docs
+    # Get posts
+
+    def dump_posts():
+        posts_collection = []
+        for post in Post.query.filter_by(status='published').all():
+            post_doc = {
+                'id': post.id,
+                'user': post.user_id,
+                'properties': {
+                    'category': post.category.name,
+                    'post_type': post.post_type.name,
+                    'content': post.content,
+                    'rating_positive': post.rating.positive,
+                    'rating_negative': post.rating.negative,
+                    'status': post.status,
+                    'hot': post.rating.hot,
+                    'shortcode': post.uuid,
+                    'slug': post.slug,
+                    'picture_url': post.picture,
+                    'ratings': []
+                },
+            }
+            # Get post ratings
+            ratings = UserPostRating.query.filter_by(post_id=post.id).all()
+            for r in ratings:
+                post_doc['properties']['ratings'].append(
+                    {'user': r.user_id, 'is_positive': r.is_positive}
+                )
+            posts_collection.append(post_doc)
+        write_doc('posts', posts_collection)
+
+    def dump_comments():
+        comments_collection = []
+        for comment in Comment.query\
+                .filter(or_(Comment.status == 'published', Comment.status == 'edited'))\
+                .all():
+            print(comment)
+            comment_doc = {
+                'id': comment.id,
+                'user': comment.user_id,
+                'post_id': comment.post_id,
+                'properties': {
+                    'content': comment.content,
+                    'rating_positive': comment.rating.positive,
+                    'rating_negative': comment.rating.negative,
+                    'status': comment.status,
+                    'ratings': []
+                },
+            }
+            if comment.parent_id:
+                comment_doc['parent_post'] = comment.parent_id
+            ratings = UserCommentRating.query.filter_by(comment_id=comment.id).all()
+            for r in ratings:
+                comment_doc['properties']['ratings'].append(
+                    {'user': r.user_id, 'is_positive': r.is_positive}
+                )
+            comments_collection.append(comment_doc)
+        write_doc('comments', comments_collection)
+    # Reference user and post with doc _id
+    # Make comments mongo docs
+
+    dump_users()
+    dump_posts()
+    dump_comments()
+
 
 manager.run()

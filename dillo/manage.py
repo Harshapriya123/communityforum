@@ -145,7 +145,7 @@ def transcend():
 
             users_collection.append(user_doc)
             print(user_doc['username'])
-            return users_collection
+        return users_collection
 
     # Make user mongo docs
     # Get posts

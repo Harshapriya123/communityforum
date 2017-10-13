@@ -94,6 +94,17 @@ def import_legacy(input_docs):
         return
 
     # Insert users
+    for user_id, user_doc in read_data['users'].items():
+        print(user_doc['username'])
+        from pillar.api.local_auth import create_local_user
+        from pillar.api.utils.authentication import find_user_in_db, upsert_user
+        # create_local_user(user_doc['email'])
+        if 'auth' in user_doc and user_doc['auth']:
+            user_doc['id'] = user_doc['auth'][0]['user_id']
+            provider = user_doc['auth'][0]['provider']
+            u = find_user_in_db(user_doc, provider=provider)
+            u_id, _ = upsert_user(u)
+            return
     # Update users list with user._id
 
     # Insert posts

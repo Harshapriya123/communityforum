@@ -81,3 +81,19 @@ def index_nodes_update_settings():
 def reset_users_karma():
     """Recalculate the users karma"""
     dillo.api.posts.rating.rebuild_karma()
+
+
+@manager_dillo.command
+def import_legacy(input_docs):
+    import json
+    try:
+        with open(input_docs) as f:
+            read_data = json.loads(f.read())
+    except FileNotFoundError:
+        print(f"Path '{input_docs}' does not exist.")
+        return
+
+    # Insert users
+    # Update users list with user._id
+
+    # Insert posts

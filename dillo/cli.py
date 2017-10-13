@@ -86,12 +86,17 @@ def reset_users_karma():
 @manager_dillo.command
 def import_legacy(input_docs):
     import json
+    from eve.methods.post import post_internal
+    from pillar.api.utils.authentication import force_cli_user
+    from dillo.setup import _get_project
     try:
         with open(input_docs) as f:
             read_data = json.loads(f.read())
     except FileNotFoundError:
         print(f"Path '{input_docs}' does not exist.")
         return
+
+    project = _get_project('today')
 
     # Insert users
     for user_id, user_doc in read_data['users'].items():
@@ -100,11 +105,21 @@ def import_legacy(input_docs):
         from pillar.api.utils.authentication import find_user_in_db, upsert_user
         # create_local_user(user_doc['email'])
         if 'auth' in user_doc and user_doc['auth']:
-            user_doc['id'] = user_doc['auth'][0]['user_id']
             provider = user_doc['auth'][0]['provider']
-            u = find_user_in_db(user_doc, provider=provider)
-            u_id, _ = upsert_user(u)
-            return
-    # Update users list with user._id
+            if provider == 'local':
+                u_id = create_local_user(user_doc['email'], 'password')
+            else:
+                user_doc['id'] = user_doc['auth'][0]['user_id']
+                u = find_user_in_db(user_doc, provider=provider)
+                u_id, _ = upsert_user(u)
+            # Update users list with user._id
+            user_doc['_id'] = u_id
 
     # Insert posts
+    force_cli_user()
+    for post_id, post_doc in read_data['posts'].items():
+        print(post_doc['id'])
+        post_doc['project'] = project['_id']
+        post_doc['node_type'] = 'dillo_post'
+        post_doc['user'] = read_data['users'][post_doc['user']]['_id']
+        post_internal('nodes', post_doc)

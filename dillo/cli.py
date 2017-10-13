@@ -114,12 +114,15 @@ def import_legacy(input_docs):
                 u_id, _ = upsert_user(u)
             # Update users list with user._id
             user_doc['_id'] = u_id
-
+    print(read_data['users'])
     # Insert posts
     force_cli_user()
     for post_id, post_doc in read_data['posts'].items():
         print(post_doc['id'])
         post_doc['project'] = project['_id']
         post_doc['node_type'] = 'dillo_post'
-        post_doc['user'] = read_data['users'][post_doc['user']]['_id']
+        post_doc['user'] = read_data['users'][str(post_doc['user'])]['_id']
+        for r in post_doc['properties']['ratings']:
+            # Swap id with _id
+            r['user'] = read_data['users'][str(r['user'])]['_id']
         post_internal('nodes', post_doc)

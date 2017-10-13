@@ -108,10 +108,9 @@ def transcend():
     from application.modules.users.model import User, UserOauth
     from application.modules.posts.model import Post, UserPostRating, Comment, UserCommentRating
 
-    def write_doc(doc_name, doc_list):
-        doc_name = doc_name + '.json'
-        with open(doc_name, 'w') as outfile:
-            json.dump(doc_list, outfile, indent=4)
+    def write_doc(docs_collections):
+        with open('dillo_export.json', 'w') as outfile:
+            json.dump(docs_collections, outfile, indent=4)
 
     def dump_users():
         # Get users
@@ -146,7 +145,7 @@ def transcend():
 
             users_collection.append(user_doc)
             print(user_doc['username'])
-            write_doc('users', users_collection)
+            return users_collection
 
     # Make user mongo docs
     # Get posts
@@ -178,7 +177,7 @@ def transcend():
                     {'user': r.user_id, 'is_positive': r.is_positive}
                 )
             posts_collection.append(post_doc)
-        write_doc('posts', posts_collection)
+        return posts_collection
 
     def dump_comments():
         comments_collection = []
@@ -206,13 +205,15 @@ def transcend():
                     {'user': r.user_id, 'is_positive': r.is_positive}
                 )
             comments_collection.append(comment_doc)
-        write_doc('comments', comments_collection)
+        return comments_collection
     # Reference user and post with doc _id
     # Make comments mongo docs
 
-    dump_users()
-    dump_posts()
-    dump_comments()
+    write_doc({
+        'users': dump_users(),
+        'posts': dump_posts(),
+        'comments': dump_comments(),
+    })
 
 
 manager.run()

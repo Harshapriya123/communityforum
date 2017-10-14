@@ -125,4 +125,28 @@ def import_legacy(input_docs):
         for r in post_doc['properties']['ratings']:
             # Swap id with _id
             r['user'] = read_data['users'][str(r['user'])]['_id']
+        post_doc.pop('id', None)
         post_internal('nodes', post_doc)
+
+
+@manager_dillo.command
+def process_posts():
+    from flask import g
+    from pillar.auth import UserClass
+    from dillo.api.posts.hooks import process_picture_oembed, before_replacing_post
+    nodes_collection = current_app.db()['nodes']
+    user_collection = current_app.db()['users']
+    nc = nodes_collection.find({
+        'node_type': 'dillo_post',
+        'properties.status': 'published',
+    })
+
+    # Log in as admin user (all created files will be owned by this user)
+    admin = user_collection.find_one({'username': 'admin'})
+    u = UserClass.construct('CLI', admin)
+    g.current_user = u
+
+    for n in nc:
+        process_picture_oembed(n, n)
+        before_replacing_post(n, n)
+        nodes_collection.find_one_and_replace({'_id': n['_id']}, n)

@@ -113,13 +113,13 @@ def set_defaults(item):
     # TODO: figure out why properties that have a default value in dyn_schema get it. Once this
     # this happens, we can remove most of the values here and set hot using 0 for default positive
     # and negative ratings.
-    item['properties']['content'] = ''
-    item['properties']['rating_positive'] = 1
-    item['properties']['rating_negative'] = 0
-    item['properties']['status'] = 'pending'
-    update_hot(item)
-    item['properties']['shortcode'] = generate_shortcode(item['project'], item['node_type'])
-    item['properties']['slug'] = slugify(item['name'], max_length=50)
+    # item['properties']['content'] = ''
+    # item['properties']['rating_positive'] = 1
+    # item['properties']['rating_negative'] = 0
+    # item['properties']['status'] = 'pending'
+    # update_hot(item)
+    # item['properties']['shortcode'] = generate_shortcode(item['project'], item['node_type'])
+    # item['properties']['slug'] = slugify(item['name'], max_length=50)
     # Give the current user PUT access. Only he will be able to update the post.
     item['permissions'] = {'users': [{'user': current_user_id(), 'methods': ['PUT']}]}
 
@@ -195,7 +195,7 @@ def before_replacing_post(item, original):
 @only_for_post
 def process_picture_oembed(item, original):
     """If picture_oembed is specified, download the image and populate the picture property."""
-    picture_url = item['properties']['picture_url']
+    picture_url = item['properties'].get('picture_url')
     if picture_url:
         # Download file to temp location
         r = requests.get(picture_url, stream=True)

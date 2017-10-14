@@ -86,6 +86,8 @@ def reset_users_karma():
 @manager_dillo.command
 def import_legacy(input_docs):
     import json
+    from flask import g
+    from pillar.auth import UserClass
     from eve.methods.post import post_internal
     from pillar.api.utils.authentication import force_cli_user
     from dillo.setup import _get_project
@@ -96,8 +98,10 @@ def import_legacy(input_docs):
         print(f"Path '{input_docs}' does not exist.")
         return
 
+    user_collection = current_app.db()['users']
     project = _get_project('today')
 
+    force_cli_user()
     # Insert users
     for user_id, user_doc in read_data['users'].items():
         print(user_doc['username'])
@@ -114,19 +118,64 @@ def import_legacy(input_docs):
                 u_id, _ = upsert_user(u)
             # Update users list with user._id
             user_doc['_id'] = u_id
-    print(read_data['users'])
     # Insert posts
-    force_cli_user()
+    posts_lookup = {}
     for post_id, post_doc in read_data['posts'].items():
-        print(post_doc['id'])
+        int_id = post_doc['id']
+        print(f'Importing post {int_id}')
         post_doc['project'] = project['_id']
         post_doc['node_type'] = 'dillo_post'
         post_doc['user'] = read_data['users'][str(post_doc['user'])]['_id']
+        post_doc['name'] = post_doc['name'][:123]
         for r in post_doc['properties']['ratings']:
             # Swap id with _id
             r['user'] = read_data['users'][str(r['user'])]['_id']
         post_doc.pop('id', None)
-        post_internal('nodes', post_doc)
+        resp, _, _, _, _ = post_internal('nodes', post_doc)
+        print(resp)
+        posts_lookup[int_id] = resp['_id']
+
+    comments_lookup = {}
+    for comment_id, comment_doc in read_data['comments'].items():
+        int_id = comment_doc['id']
+        print(f'Importing comment {int_id}')
+
+        user_id = read_data['users'][str(comment_doc['user'])]['_id']
+
+        u_doc = user_collection.find_one({'_id': user_id})
+        u = UserClass.construct('CLI', u_doc)
+        g.current_user = u
+
+        comment_doc['project'] = project['_id']
+        comment_doc['name'] = 'Comment'
+        comment_doc['node_type'] = 'comment'
+        comment_doc['user'] = user_id
+
+        parent_post = comment_doc.get('parent_post')
+        try:
+            if parent_post:
+                parent = comments_lookup[parent_post]
+            else:
+                parent = posts_lookup[comment_doc['post_id']]
+        except KeyError:
+            # If a post does not exist, do not add comments
+            continue
+        comment_doc['parent'] = parent
+        for r in comment_doc['properties']['ratings']:
+            # Swap id with _id
+            r['user'] = read_data['users'][str(r['user'])]['_id']
+
+        content = comment_doc['properties']['content']
+        if len(content) < 5:
+            content = content + ' ' * (5 - len(content))
+            comment_doc['properties']['content'] = content
+
+        comment_doc.pop('id', None)
+        comment_doc.pop('post_id', None)
+        comment_doc.pop('parent_post', None)
+        resp, _, _, _, _ = post_internal('nodes', comment_doc)
+        print(resp)
+        comments_lookup[int_id] = resp['_id']
 
 
 @manager_dillo.command

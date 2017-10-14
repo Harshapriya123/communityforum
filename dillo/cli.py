@@ -104,7 +104,7 @@ def import_legacy(input_docs):
     force_cli_user()
     # Insert users
     for user_id, user_doc in read_data['users'].items():
-        print(user_doc['username'])
+        print(f'Importing user {user_doc["id"]}')
         from pillar.api.local_auth import create_local_user
         from pillar.api.utils.authentication import find_user_in_db, upsert_user
         # create_local_user(user_doc['email'])

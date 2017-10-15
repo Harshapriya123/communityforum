@@ -87,6 +87,7 @@ def reset_users_karma():
 def import_legacy(input_docs):
     import json
     from flask import g
+    import dateutil.parser
     from pillar.auth import UserClass
     from eve.methods.post import post_internal
     from pillar.api.utils.authentication import force_cli_user
@@ -99,6 +100,7 @@ def import_legacy(input_docs):
         return
 
     user_collection = current_app.db()['users']
+    nodes_collection = current_app.db()['nodes']
     project = _get_project('today')
 
     force_cli_user()
@@ -108,16 +110,19 @@ def import_legacy(input_docs):
         from pillar.api.local_auth import create_local_user
         from pillar.api.utils.authentication import find_user_in_db, upsert_user
         # create_local_user(user_doc['email'])
-        if 'auth' in user_doc and user_doc['auth']:
-            provider = user_doc['auth'][0]['provider']
-            if provider == 'local':
-                u_id = create_local_user(user_doc['email'], 'password')
-            else:
-                user_doc['id'] = user_doc['auth'][0]['user_id']
-                u = find_user_in_db(user_doc, provider=provider)
-                u_id, _ = upsert_user(u)
-            # Update users list with user._id
-            user_doc['_id'] = u_id
+        provider = user_doc['auth'][0]['provider']
+        if provider == 'local':
+            u_id = create_local_user(user_doc['email'], 'password')
+        else:
+            user_doc['id'] = user_doc['auth'][0]['user_id']
+            u = find_user_in_db(user_doc, provider=provider)
+            u_id, _ = upsert_user(u)
+        # Update users list with user._id
+        user_doc['_id'] = u_id
+        # Set karma
+        user_collection.find_one_and_update(
+            {'_id': u_id},
+            {'$set': {'extension_props_public': user_doc['extension_props_public']}})
     # Insert posts
     posts_lookup = {}
     for post_id, post_doc in read_data['posts'].items():
@@ -131,7 +136,17 @@ def import_legacy(input_docs):
             # Swap id with _id
             r['user'] = read_data['users'][str(r['user'])]['_id']
         post_doc.pop('id', None)
+        _created = post_doc.pop('_created')
+        _updated = post_doc.pop('_updated', None)
         resp, _, _, _, _ = post_internal('nodes', post_doc)
+
+        update_query = {'_created': dateutil.parser.parse(_created)}
+        if _updated:
+            update_query['_updated'] = dateutil.parser.parse(_updated)
+
+        nodes_collection.find_one_and_update(
+            {'_id': resp['_id']},
+            {'$set': update_query})
         print(resp)
         posts_lookup[int_id] = resp['_id']
 
@@ -173,7 +188,18 @@ def import_legacy(input_docs):
         comment_doc.pop('id', None)
         comment_doc.pop('post_id', None)
         comment_doc.pop('parent_post', None)
+        _created = post_doc.pop('_created')
+        _updated = post_doc.pop('_updated', None)
         resp, _, _, _, _ = post_internal('nodes', comment_doc)
+
+        update_query = {'_created': dateutil.parser.parse(_created)}
+        if _updated:
+            update_query['_updated'] = dateutil.parser.parse(_updated)
+
+        nodes_collection.find_one_and_update(
+            {'_id': resp['_id']},
+            {'$set': update_query})
+
         print(resp)
         comments_lookup[int_id] = resp['_id']
 

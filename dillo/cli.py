@@ -188,8 +188,8 @@ def import_legacy(input_docs):
         comment_doc.pop('id', None)
         comment_doc.pop('post_id', None)
         comment_doc.pop('parent_post', None)
-        _created = post_doc.pop('_created')
-        _updated = post_doc.pop('_updated', None)
+        _created = comment_doc.pop('_created')
+        _updated = comment_doc.pop('_updated', None)
         resp, _, _, _, _ = post_internal('nodes', comment_doc)
 
         update_query = {'_created': dateutil.parser.parse(_created)}

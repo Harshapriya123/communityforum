@@ -107,6 +107,11 @@ def import_legacy(input_docs, community_name):
     # Insert users
     for user_id, user_doc in read_data['users'].items():
         print(f'Importing user {user_doc["id"]}')
+        db_user = user_collection.find_one({'email': user_doc['email']})
+        if db_user:
+            print('User already exists')
+            user_doc['_id'] = db_user['_id']
+            continue
         from pillar.api.local_auth import create_local_user
         from pillar.api.utils.authentication import find_user_in_db, upsert_user
         # create_local_user(user_doc['email'])
@@ -128,6 +133,17 @@ def import_legacy(input_docs, community_name):
     for post_id, post_doc in read_data['posts'].items():
         int_id = post_doc['id']
         print(f'Importing post {int_id}')
+
+        db_post = nodes_collection.find_one({
+            'project': project['_id'],
+            'node_type': 'dillo_post',
+            'properties.shortcode': post_doc['properties']['shortcode']
+        })
+        if db_post:
+            print('Post already imported')
+            posts_lookup[int_id] = db_post['_id']
+            continue
+
         post_doc['project'] = project['_id']
         post_doc['node_type'] = 'dillo_post'
         post_doc['user'] = read_data['users'][str(post_doc['user'])]['_id']
@@ -154,6 +170,16 @@ def import_legacy(input_docs, community_name):
     for comment_id, comment_doc in read_data['comments'].items():
         int_id = comment_doc['id']
         print(f'Importing comment {int_id}')
+
+        db_comment = nodes_collection.find_one({
+            'project': project['_id'],
+            'node_type': 'comment',
+            '_created': dateutil.parser.parse(comment_doc['_created'])
+        })
+        if db_comment:
+            print('Comment already imported')
+            comments_lookup[int_id] = db_comment['_id']
+            continue
 
         user_id = read_data['users'][str(comment_doc['user'])]['_id']
 

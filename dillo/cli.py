@@ -84,7 +84,7 @@ def reset_users_karma():
 
 
 @manager_dillo.command
-def import_legacy(input_docs):
+def import_legacy(input_docs, community_name):
     import json
     from flask import g
     import dateutil.parser
@@ -101,7 +101,7 @@ def import_legacy(input_docs):
 
     user_collection = current_app.db()['users']
     nodes_collection = current_app.db()['nodes']
-    project = _get_project('today')
+    project = _get_project(community_name)
 
     force_cli_user()
     # Insert users

@@ -231,15 +231,19 @@ def import_legacy(input_docs, community_name):
 
 
 @manager_dillo.command
-def process_posts():
+def process_posts(community_name):
     from flask import g
     from pillar.auth import UserClass
     from dillo.api.posts.hooks import process_picture_oembed, before_replacing_post
+    from dillo.setup import _get_project
+    project = _get_project(community_name)
+
     nodes_collection = current_app.db()['nodes']
     user_collection = current_app.db()['users']
     nc = nodes_collection.find({
         'node_type': 'dillo_post',
         'properties.status': 'published',
+        'project': project['_id'],
     })
 
     # Log in as admin user (all created files will be owned by this user)
@@ -248,6 +252,8 @@ def process_posts():
     g.current_user = u
 
     for n in nc:
+        n_id = n['_id']
+        print(f'Processing node {n_id}')
         process_picture_oembed(n, n)
         before_replacing_post(n, n)
-        nodes_collection.find_one_and_replace({'_id': n['_id']}, n)
+        nodes_collection.find_one_and_replace({'_id': n_id}, n)

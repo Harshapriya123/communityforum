@@ -144,6 +144,10 @@ def import_legacy(input_docs, community_name):
             posts_lookup[int_id] = db_post['_id']
             continue
 
+        u_doc = user_collection.find_one({'_id': db_post['user']})
+        u = UserClass.construct(u_doc['_id'], u_doc)
+        g.current_user = u
+
         post_doc['project'] = project['_id']
         post_doc['node_type'] = 'dillo_post'
         post_doc['user'] = read_data['users'][str(post_doc['user'])]['_id']
@@ -184,7 +188,7 @@ def import_legacy(input_docs, community_name):
         user_id = read_data['users'][str(comment_doc['user'])]['_id']
 
         u_doc = user_collection.find_one({'_id': user_id})
-        u = UserClass.construct('CLI', u_doc)
+        u = UserClass.construct(user_id, u_doc)
         g.current_user = u
 
         comment_doc['project'] = project['_id']

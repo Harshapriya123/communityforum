@@ -144,17 +144,18 @@ def import_legacy(input_docs, community_name):
             posts_lookup[int_id] = db_post['_id']
             continue
 
-        u_doc = user_collection.find_one({'_id': db_post['user']})
+        u_id = read_data['users'][str(post_doc['user'])]['_id']
+        u_doc = user_collection.find_one({'_id': u_id})
         u = UserClass.construct(u_doc['_id'], u_doc)
         g.current_user = u
 
         post_doc['project'] = project['_id']
         post_doc['node_type'] = 'dillo_post'
-        post_doc['user'] = read_data['users'][str(post_doc['user'])]['_id']
+        post_doc['user'] = u_id
         post_doc['name'] = post_doc['name'][:123]
         for r in post_doc['properties']['ratings']:
             # Swap id with _id
-            r['user'] = read_data['users'][str(r['user'])]['_id']
+            r['user'] = u_id
         post_doc.pop('id', None)
         _created = post_doc.pop('_created')
         _updated = post_doc.pop('_updated', None)

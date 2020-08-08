@@ -645,10 +645,10 @@ class UploadPathTest(SimpleTestCase):
 
 class JobsModelTest(TestCase):
     def setUp(self):
-        from dillo.models.jobs import Job
+        from dillo.models.posts import PostJob
 
         self.user = User.objects.create_user(username='testuser', password='12345')
-        self.job = Job.objects.create(
+        self.job = PostJob.objects.create(
             user=self.user,
             company='Minstry of Magic',
             city='London',

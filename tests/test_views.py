@@ -310,7 +310,7 @@ class NotificationViewsTest(TestCase):
 @override_settings(STATICFILES_STORAGE='pipeline.storage.PipelineStorage')
 class EventViewsTest(TestCase):
     def setUp(self) -> None:
-        import datetime
+        from django.utils import timezone
 
         self.user1 = User.objects.create_user(username='testuser1', password='12345')
         self.user2 = User.objects.create_user(username='testuser2', password='12345')
@@ -321,8 +321,8 @@ class EventViewsTest(TestCase):
             name='Lightbox',
             slug='lightbox',
             website='https://example.com',
-            starts_at=datetime.datetime.now(),
-            ends_at=datetime.datetime.now(),
+            starts_at=timezone.now(),
+            ends_at=timezone.now(),
         )
         self.client = Client()
 

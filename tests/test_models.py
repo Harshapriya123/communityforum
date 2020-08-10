@@ -45,8 +45,8 @@ class ProfileModelTest(TestCase):
             name='Event1',
             slug='event1',
             website='http://example.com',
-            starts_at=datetime.datetime(2120, 2, 11, 10),
-            ends_at=datetime.datetime(2120, 2, 11, 22),
+            starts_at=datetime.datetime(2120, 2, 11, 10, tzinfo=datetime.timezone.utc),
+            ends_at=datetime.datetime(2120, 2, 11, 22, tzinfo=datetime.timezone.utc),
         )
         self.assertNotIn(event1, self.user.events.all())
         # Assign event to user
@@ -59,8 +59,8 @@ class ProfileModelTest(TestCase):
             name='Event2',
             slug='event2',
             website='http://example.com',
-            starts_at=datetime.datetime(2019, 2, 11, 10),
-            ends_at=datetime.datetime(2019, 2, 11, 22),
+            starts_at=datetime.datetime(2019, 2, 11, 10, tzinfo=datetime.timezone.utc),
+            ends_at=datetime.datetime(2019, 2, 11, 22, tzinfo=datetime.timezone.utc),
         )
         # Assign event to user
         event2.attendees.add(self.user)

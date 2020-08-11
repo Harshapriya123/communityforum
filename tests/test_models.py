@@ -423,7 +423,7 @@ class UserModelTest(TestCase):
         self.user = User.objects.create_user(username='testuser', password='12345')
         self.user_mentioned = User.objects.create_user(username='venomgfx')
         self.post = dillo.models.posts.Post.objects.create(
-            user=self.user, title='Velocità con #animato'
+            user=self.user, title='Velocità con #animato',
         )
 
     def test_delete_user(self):
@@ -436,18 +436,23 @@ class FeedElementModelTest(TestCase):
     def setUp(self):
         from django.contrib.auth.models import User
 
-        self.user1 = User.objects.create_user(username='testuser1', password='12345')
-        self.user2 = User.objects.create_user(username='testuser2', password='12345')
+        self.user1 = User.objects.create_user(
+            username='testuser1', email='testuser1@example.com', password='12345'
+        )
+        self.user2 = User.objects.create_user(
+            username='testuser2', email='testuser2@example.com', password='12345'
+        )
         self.post = dillo.models.posts.Post.objects.create(
             user=self.user1, title='Velocità con #animato'
         )
-        self.post.publish()
 
     def test_user_follows_own_post(self):
         self.assertIn(self.user1, models_actstream.followers(self.post))
 
     def test_user_liked_your_post_notification(self):
         """When user2 likes user1's post. User1 gets a notification."""
+        # We publish the post created in setUp
+        self.post.publish()
         self.post.like_toggle(self.user2)
         # Check that a like notification was generated for user1
         notification = self.user1.feed_entries.first()
@@ -503,6 +508,8 @@ class FeedElementModelTest(TestCase):
         self.assertEqual(comment_content, notification.action.action_object.content)
 
     def test_user_replied_to_your_comment_notification(self):
+        # We publish the post created in setUp
+        self.post.publish()
         # Create comment
         comment_content = 'Nice idea! #idea'
         comment = dillo.models.posts.Comment.objects.create(
@@ -510,11 +517,11 @@ class FeedElementModelTest(TestCase):
         )
         reply_content = 'I concur.'
         # Add reply from the same user
-        reply = dillo.models.posts.Comment.objects.create(
+        dillo.models.posts.Comment.objects.create(
             user=self.user1, content=reply_content, post=self.post, parent_comment=comment,
         )
         # This generates no notifications
-        notifications_count = self.user1.feed_entries.count()
+        notifications_count = self.user1.feed_entries.filter(category='notification').count()
         self.assertEqual(0, notifications_count)
 
         # Add reply from another user
@@ -543,6 +550,8 @@ class FeedElementModelTest(TestCase):
         pass
 
     def test_user_follows_you_notification(self):
+        # We publish the post created in setUp
+        self.post.publish()
         follow(self.user2, self.user1)
         notification = self.user1.feed_entries.first()
         # Verify that notification exists
@@ -554,10 +563,13 @@ class FeedElementModelTest(TestCase):
         follow(self.user2, self.user1)
         self.assertEqual(2, self.user1.feed_entries.count())
         self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].subject, 'Your have a new follower!')
+        self.assertEqual(mail.outbox[0].subject, 'You have a new follower!')
 
     def test_post_in_timeline_for_user_followed(self):
         from taggit.models import Tag
+
+        # We publish the post created in setUp
+        self.post.publish()
 
         follow(self.user2, self.user1)
         follow(self.user2, Tag.objects.get(name='animato'))
@@ -578,6 +590,9 @@ class FeedElementModelTest(TestCase):
 
     def test_post_in_timeline_for_tag_followed(self):
         from taggit.models import Tag
+
+        # We publish the post created in setUp
+        self.post.publish()
 
         follow(self.user2, Tag.objects.get(name='animato'))
         follow(self.user2, Tag.objects.create(name='b3d'))
@@ -613,7 +628,7 @@ class FeedElementModelTest(TestCase):
         self.assertEqual(0, self.user2.feed_entries.filter(category='timeline').count())
 
     def test_post_in_own_timeline(self):
-        # User 1 timeline is empty
+        # User 1 timeline contains one post
         self.assertEqual(0, self.user1.feed_entries.filter(category='timeline').count())
         # We publish the post created in setUp
         self.post.publish()

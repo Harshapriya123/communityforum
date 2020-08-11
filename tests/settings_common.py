@@ -10,6 +10,17 @@ LANGUAGE_CODE = 'en-us'
 SECRET_KEY = 'test'
 SITE_ID = 1  # Required by django-allauth
 
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = False
+ACCOUNT_TEMPLATE_EXTENSION = 'pug'
+
+ACCOUNT_FORMS = {
+    'signup': 'dillo.forms.CustomSignupForm',
+}
+
 ROOT_URLCONF = 'tests.urls'
 
 INSTALLED_APPS = [
@@ -155,7 +166,7 @@ STATICFILES_FINDERS = (
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'dillo_test',
+        'NAME': 'dillo',
         'USER': 'postgres',
         'PASSWORD': '',
         'HOST': 'localhost',
@@ -176,3 +187,19 @@ MEDIA_UPLOADS_ACCEPTED_MIMES = {
 }
 
 MEDIA_UPLOADS_VIDEO_MAX_DURATION_SECONDS = 60 * 4
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'default': {'format': '%(levelname)8s %(name)s %(message)s'},
+        'verbose': {
+            'format': '%(asctime)-15s %(levelname)8s %(name)s %(process)d %(thread)d %(message)s'
+        },
+    },
+    'handlers': {'console': {'class': 'logging.StreamHandler', 'formatter': 'default',},},
+    'loggers': {'dillo': {'handlers': ['console'], 'level': 'DEBUG'},},
+}
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = "Animato <contact@anima.to>"

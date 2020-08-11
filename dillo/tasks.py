@@ -18,7 +18,7 @@ from django.urls import reverse
 from micawber.contrib.mcdjango import providers
 from taggit import models as models_taggit
 
-import coconut.job
+import dillo.coconut.job
 import dillo.models
 import dillo.models.feeds
 import dillo.models.messages
@@ -86,7 +86,7 @@ def create_job(post_hash_id: str, video_id: int, source_path: str):
         'post_update_video_processing', kwargs={'hash_id': post_hash_id, 'video_id': video_id}
     )
 
-    j = coconut.job.create(
+    j = dillo.coconut.job.create(
         api_key=settings.COCONUT_API_KEY,
         source=f'{job_storage_base}{source_path}',
         webhook=f'{settings.COCONUT_DECLARED_HOSTNAME}{job_webhook}, events=true, metadata=true',
